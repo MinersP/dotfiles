@@ -1,39 +1,35 @@
 " https://github.com/huyvohcmc/dotfiles
 
 " Faster loading
-let g:python3_host_prog = '/usr/local/bin/python3'
-let g:python_host_prog = '/usr/local/bin/python'
+let g:python3_host_prog = '/usr/bin/python3'
+let g:python_host_prog = '/usr/bin/python'
 let g:ruby_host_prog = 'rvm system do neovim-ruby-host'
 
 " Plugins will be downloaded under the specified directory
 call plug#begin('~/.config/nvim/plugged')
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'justinmk/vim-sneak'
 Plug 'itchyny/lightline.vim'
 Plug '/usr/local/opt/fzf'
 Plug 'junegunn/fzf.vim'
 Plug 'ludovicchabant/vim-gutentags'
-Plug 'mhinz/vim-signify'
-Plug 'scrooloose/nerdtree'
-Plug 'sheerun/vim-polyglot'
-Plug 'tomtom/tcomment_vim'
-Plug 'tpope/vim-endwise'
-Plug 'tpope/vim-fugitive'
-Plug 'tpope/vim-rails'
-Plug 'tpope/vim-repeat'
-Plug 'tpope/vim-rhubarb'
+Plug 'mhinz/vim-signify' " Version control info on side
+Plug 'scrooloose/nerdtree' " File Tree
+Plug 'sheerun/vim-polyglot' " Language Pack
+Plug 'tomtom/tcomment_vim' " Commenting stuff
+Plug 'tpope/vim-fugitive' " Git plugin
+Plug 'tpope/vim-repeat' " Adds additional use cases for '.' to repeat actions
+Plug 'tpope/vim-rhubarb' " Github extension for vim-fugitive
 Plug 'tpope/vim-surround'
-Plug 'w0rp/ale'
-Plug 'wellle/targets.vim'
-Plug 'rstacruz/vim-closer'
-Plug 'ncm2/ncm2'
-Plug 'ncm2/ncm2-bufword'
-Plug 'ncm2/ncm2-tagprefix'
-Plug 'ncm2/ncm2-path'
+Plug 'wellle/targets.vim' " Adds additional text objects to operate on
+" Plug 'tpope/vim-endwise'
+" Plug 'rstacruz/vim-closer'
 Plug 'roxma/nvim-yarp'
-Plug 'huyvohcmc/atlas.vim'
-Plug 'dunckr/js_alternate.vim'
 Plug 'christoomey/vim-tmux-navigator'
+Plug 'morhetz/gruvbox'
+Plug 'ambv/black', { 'tag': '*' }
 call plug#end()
+
 
 " General settings (see :h vim-differences)
 filetype plugin indent on
@@ -59,10 +55,11 @@ set linebreak
 set list listchars=tab:.\ ,trail:.
 set mouse=""
 set nobackup
+set nowritebackup
 set noshowmatch
 set noshowmode
 set noswapfile
-set number
+set number relativenumber
 set ruler rulerformat=%l\:%c
 set scrolloff=5
 set shortmess+=c
@@ -79,14 +76,24 @@ set matchpairs+=<:>
 set splitright
 set modelines=0
 set nomodeline
+set cmdheight=2
+set updatetime=300
 
 " Safeguard
 if !exists("g:syntax_on")
   syntax enable
 endif
 
+" Toggle relativenumber on mode
+augroup numbertoggle
+  autocmd!
+  autocmd BufEnter,FocusGained,InsertLeave,WinEnter * if &nu | set rnu | endif
+  autocmd BufLeave,FocusLost,InsertEnter,WinLeave   * if &nu | set nornu | endif
+augroup END
+
 " Colorscheme
-colorscheme atlas
+colorscheme gruvbox
+set background=dark
 
 " Vim sneak autocmd
 let g:sneak#label = 1
@@ -108,16 +115,9 @@ nnoremap <silent><left> :vertical resize -10<cr>
 nnoremap <silent><up> :resize +10<cr>
 nnoremap <silent><down> :resize -10<cr>
 
-" Easy navigation
-nnoremap <leader>s <c-w>w
-
 " Navigate properly when lines are wrapped
 nnoremap j gj
 nnoremap k gk
-
-" Use tab to jump between blocks, because it's easier
-nnoremap <tab> %
-vnoremap <tab> %
 
 " NERDTree mapping and config
 noremap <leader>n :NERDTreeToggle<CR>
@@ -149,35 +149,156 @@ let g:signify_sign_show_count = 0
 let g:signify_sign_change = '-'
 
 " Gutentags exclude
-let g:gutentags_exclude_project_root = ['/usr/local', '/Users/huyvo']
+let g:gutentags_exclude_project_root = ['/usr/local', '/Users/pminers']
 let g:gutentags_ctags_exclude = ['*.min.js', '*.min.css', 'build', 'vendor', '.git', 'node_modules', '*.vim/bundle/*']
-
-" Enable ncm2 for all buffers
-autocmd BufEnter * call ncm2#enable_for_buffer()
-
-" Use <TAB> to select the popup menu:
-inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
-inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
 
 " LightLine config
 let g:lightline = {}
-let g:lightline.colorscheme = 'atlas'
+let g:lightline.colorscheme = 'gruvbox'
 let g:lightline.component_function = {
+      \ 'cocstatus': 'coc#status',
+      \ 'currentfunction': 'CocCurrentFunction',
       \ 'gitbranch': 'fugitive#head',
       \ }
 let g:lightline.active = {
-      \ 'left': [ [ 'mode', 'paste' ], [ 'gitbranch', 'readonly', 'relativepath', 'modified' ] ],
+      \ 'left': [ [ 'mode', 'paste' ], [ 'cocstatus', 'currentfunction' ], [ 'gitbranch', 'readonly', 'relativepath', 'modified' ] ],
       \ }
 
-" ALE config
-nmap <leader>e <Plug>(ale_fix)
-let g:ale_sign_error = '×'
-let g:ale_echo_msg_error_str = 'E'
-let g:ale_echo_msg_warning_str = 'W'
-let g:ale_echo_msg_format = '[%linter%] %s [%severity%]'
-let g:ale_set_loclist = 0
-let g:ale_set_quickfix = 1
-let g:ale_set_highlights = 0
-let g:ale_lint_on_text_changed = 'never'
-let g:ale_linters = { 'ruby': ['rubocop'], 'javascript': ['eslint', 'prettier'] }
-let g:ale_fixers = { 'ruby': ['rubocop'], 'javascript': ['prettier'] }
+" Python Black Settings
+let g:black_fast = 1
+let g:black_linelength = 88
+autocmd BufWritePre *.py execute ':Black'
+
+" COC Settings
+let g:coc_global_extensions = [
+  \ 'coc-snippets',
+  \ 'coc-pairs',
+  \ 'coc-python',
+  \ 'coc-tsserver',
+  \ 'coc-eslint',
+  \ 'coc-prettier',
+  \ 'coc-json',
+  \ 'coc-vetur',
+  \ ]
+" Use tab for trigger completion with characters ahead and navigate.
+" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
+" other plugin before putting this into your config.
+inoremap <silent><expr> <TAB>
+      \ pumvisible() ? "\<C-n>" :
+      \ <SID>check_back_space() ? "\<TAB>" :
+      \ coc#refresh()
+inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
+
+function! s:check_back_space() abort
+  let col = col('.') - 1
+  return !col || getline('.')[col - 1]  =~# '\s'
+endfunction
+
+" Use <c-space> to trigger completion.
+inoremap <silent><expr> <c-space> coc#refresh()
+
+" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current
+" position. Coc only does snippet and additional edit on confirm.
+if exists('*complete_info')
+  inoremap <expr> <cr> complete_info()["selected"] != "-1" ? "\<C-y>" : "\<C-g>u\<CR>"
+else
+  " imap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+  inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+endif
+
+" Use `[g` and `]g` to navigate diagnostics
+nmap <silent> [g <Plug>(coc-diagnostic-prev)
+nmap <silent> ]g <Plug>(coc-diagnostic-next)
+
+" GoTo code navigation.
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
+
+" Use K to show documentation in preview window.
+nnoremap <silent> K :call <SID>show_documentation()<CR>
+
+function! s:show_documentation()
+  if (index(['vim','help'], &filetype) >= 0)
+    execute 'h '.expand('<cword>')
+  else
+    call CocAction('doHover')
+  endif
+endfunction
+
+" Highlight the symbol and its references when holding the cursor.
+autocmd CursorHold * silent call CocActionAsync('highlight')
+
+" Symbol renaming.
+nmap <leader>rn <Plug>(coc-rename)
+
+" Formatting selected code.
+xmap <leader>f  <Plug>(coc-format-selected)
+nmap <leader>f  <Plug>(coc-format-selected)
+
+augroup mygroup
+  autocmd!
+  " Setup formatexpr specified filetype(s).
+  autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+  " Update signature help on jump placeholder.
+  autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+augroup end
+
+" Applying codeAction to the selected region.
+" Example: `<leader>aap` for current paragraph
+xmap <leader>a  <Plug>(coc-codeaction-selected)
+nmap <leader>a  <Plug>(coc-codeaction-selected)
+
+" Remap keys for applying codeAction to the current line.
+nmap <leader>ac  <Plug>(coc-codeaction)
+" Apply AutoFix to problem on the current line.
+nmap <leader>qf  <Plug>(coc-fix-current)
+
+" Introduce function text object
+" NOTE: Requires 'textDocument.documentSymbol' support from the language server.
+xmap if <Plug>(coc-funcobj-i)
+xmap af <Plug>(coc-funcobj-a)
+omap if <Plug>(coc-funcobj-i)
+omap af <Plug>(coc-funcobj-a)
+
+" Use <TAB> for selections ranges.
+" NOTE: Requires 'textDocument/selectionRange' support from the language server.
+" coc-tsserver, coc-python are the examples of servers that support it.
+nmap <silent> <TAB> <Plug>(coc-range-select)
+xmap <silent> <TAB> <Plug>(coc-range-select)
+
+" Add `:Format` command to format current buffer.
+command! -nargs=0 Format :call CocAction('format')
+
+" Add `:Fold` command to fold current buffer.
+command! -nargs=? Fold :call     CocAction('fold', <f-args>)
+
+" Add `:OR` command for organize imports of the current buffer.
+command! -nargs=0 OR   :call     CocAction('runCommand', 'editor.action.organizeImport')
+
+" Add (Neo)Vim's native statusline support.
+" NOTE: Please see `:h coc-status` for integrations with external plugins that
+" provide custom statusline: lightline.vim, vim-airline.
+set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
+
+" Mappings using CoCList:
+" Show all diagnostics.
+nnoremap <silent> <space>a  :<C-u>CocList diagnostics<cr>
+" Manage extensions.
+nnoremap <silent> <space>e  :<C-u>CocList extensions<cr>
+" Show commands.
+nnoremap <silent> <space>c  :<C-u>CocList commands<cr>
+" Find symbol of current document.
+nnoremap <silent> <space>o  :<C-u>CocList outline<cr>
+" Search workspace symbols.
+nnoremap <silent> <space>s  :<C-u>CocList -I symbols<cr>
+" Do default action for next item.
+nnoremap <silent> <space>j  :<C-u>CocNext<CR>
+" Do default action for previous item.
+nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
+" Resume latest coc list.
+nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
+" END of COC stuff
+
+autocmd BufNewFile,BufRead *.installscript set syntax=scalk
